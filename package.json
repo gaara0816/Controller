@@ -1,0 +1,19 @@
+{
+  "name": "cordova-plugin-controller",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gaara0816/Controller.git"
+  },
+  "author": "demon",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gaara0816/Controller/issues"
+  },
+  "homepage": "https://github.com/gaara0816/Controller#readme"
+}
