@@ -11,6 +11,12 @@ import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * This class echoes a string called from JavaScript.
@@ -19,22 +25,90 @@ public class Controller extends CordovaPlugin {
 
     private static final String ACTION = "com.mumatech.controller.ACTION";
 
+    private static final long BIND_OUT_TIME = 3000;
+
     private ISTM8Controller aidlBind;
+
+    private boolean bindResult;
+    private boolean isConnect;
+
+    private Lock locks = new ReentrantLock(true);
+    private Condition bindCondition = locks.newCondition();
+//    private Object lock = new Object();
 
     private ServiceConnection aidlConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             aidlBind = ISTM8Controller.Stub.asInterface(service);
+            isConnect = true;
+//            synchronized (lock) {
+//                lock.notify();
+//            }
+            locks.lock();
+            bindCondition.signal();
+            locks.unlock();
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
             aidlBind = null;
+            isConnect = false;
+//            synchronized (lock) {
+//                lock.notify();
+//            }
+            locks.lock();
+            bindCondition.signal();
+            locks.unlock();
         }
     };
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
+        if (!bindResult || !isConnect) {
+            //发起PolicyService绑定
+            Intent intent = new Intent(ACTION);
+            intent.setPackage("com.mumatech.policyservice");
+            bindResult = Controller.this.cordova.getActivity().getApplicationContext().bindService(intent, aidlConnection, Context.BIND_AUTO_CREATE);
+
+            //等待绑定结果，设置超时时间
+
+//            synchronized (lock) {
+//                try {
+//                    lock.wait(3000);
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+
+            locks.lock();
+            try {
+                bindCondition.await(BIND_OUT_TIME, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } finally {
+                locks.unlock();
+            }
+
+            //根据
+            if (!bindResult) {
+                callbackContext.error(new JSONObject()
+                        .put(ControllerError.CODE, ControllerError.CODE_UNINSTALL)
+                        .put(ControllerError.MESSAGE, ControllerError.MSG_UNINSTALL));
+                return true;
+            } else if (!isConnect) {
+                callbackContext.error(new JSONObject()
+                        .put(ControllerError.CODE, ControllerError.CODE_DISCONNECT)
+                        .put(ControllerError.MESSAGE, ControllerError.MSG_DISCONNECT));
+                return true;
+            } else {
+                return handler(action, args, callbackContext);
+            }
+        } else {
+            return handler(action, args, callbackContext);
+        }
+    }
+
+    private boolean handler(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
         if (action.equals("lock")) {
             String message = args.getString(0);
             this.lock(message, callbackContext);
@@ -48,7 +122,6 @@ public class Controller extends CordovaPlugin {
     }
 
     private void lock(String message, CallbackContext callbackContext) {
-
         try {
             aidlBind.lock();
             callbackContext.success(message);
@@ -59,7 +132,6 @@ public class Controller extends CordovaPlugin {
     }
 
     private void unLock(String message, CallbackContext callbackContext) {
-
         try {
             aidlBind.unLock();
             callbackContext.success(message);
@@ -82,14 +154,13 @@ public class Controller extends CordovaPlugin {
     @Override
     protected void pluginInitialize() {
         super.pluginInitialize();
-        Intent intent = new Intent(ACTION);
-        intent.setPackage("com.mumatech.policyservice");
-        boolean result = this.cordova.getActivity().getApplicationContext().bindService(intent, aidlConnection, Context.BIND_AUTO_CREATE);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
         this.cordova.getActivity().unbindService(aidlConnection);
+        bindResult = false;
     }
+
 }

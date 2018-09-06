@@ -14,5 +14,6 @@
     <config-file parent="/*" target="AndroidManifest.xml"></config-file>  
     <source-file src="src/android/Controller.java" target-dir="src/com/mumatech/controller"/>
     <source-file src="src/android/ISTM8Controller.aidl" target-dir="src/com/mumatech/controller"/> 
+    <source-file src="src/android/ControllerError.java" target-dir="src/com/mumatech/controller"/> 
   </platform> 
 </plugin>
