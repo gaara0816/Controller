@@ -16,4 +16,8 @@ interface ISTM8Controller {
     void lock();
 
     void update();
+
+    void changeKPadPower(boolean isPower);
+
+    void changePPadSpeakerPower(boolean isPower);
 }

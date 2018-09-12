@@ -34,16 +34,16 @@ public class Controller extends CordovaPlugin {
 
     private Lock locks = new ReentrantLock(true);
     private Condition bindCondition = locks.newCondition();
-//    private Object lock = new Object();
+    // private Object lock = new Object();
 
     private ServiceConnection aidlConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             aidlBind = ISTM8Controller.Stub.asInterface(service);
             isConnect = true;
-//            synchronized (lock) {
-//                lock.notify();
-//            }
+            // synchronized (lock) {
+            // lock.notify();
+            // }
             locks.lock();
             bindCondition.signal();
             locks.unlock();
@@ -53,9 +53,9 @@ public class Controller extends CordovaPlugin {
         public void onServiceDisconnected(ComponentName name) {
             aidlBind = null;
             isConnect = false;
-//            synchronized (lock) {
-//                lock.notify();
-//            }
+            // synchronized (lock) {
+            // lock.notify();
+            // }
             locks.lock();
             bindCondition.signal();
             locks.unlock();
@@ -65,20 +65,21 @@ public class Controller extends CordovaPlugin {
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
         if (!bindResult || !isConnect) {
-            //发起PolicyService绑定
+            // 发起PolicyService绑定
             Intent intent = new Intent(ACTION);
             intent.setPackage("com.mumatech.policyservice");
-            bindResult = Controller.this.cordova.getActivity().getApplicationContext().bindService(intent, aidlConnection, Context.BIND_AUTO_CREATE);
+            bindResult = Controller.this.cordova.getActivity().getApplicationContext().bindService(intent,
+                    aidlConnection, Context.BIND_AUTO_CREATE);
 
-            //等待绑定结果，设置超时时间
+            // 等待绑定结果，设置超时时间
 
-//            synchronized (lock) {
-//                try {
-//                    lock.wait(3000);
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-//            }
+            // synchronized (lock) {
+            // try {
+            // lock.wait(3000);
+            // } catch (InterruptedException e) {
+            // e.printStackTrace();
+            // }
+            // }
 
             locks.lock();
             try {
@@ -89,15 +90,13 @@ public class Controller extends CordovaPlugin {
                 locks.unlock();
             }
 
-            //根据
+            // 根据
             if (!bindResult) {
-                callbackContext.error(new JSONObject()
-                        .put(ControllerError.CODE, ControllerError.CODE_UNINSTALL)
+                callbackContext.error(new JSONObject().put(ControllerError.CODE, ControllerError.CODE_UNINSTALL)
                         .put(ControllerError.MESSAGE, ControllerError.MSG_UNINSTALL));
                 return true;
             } else if (!isConnect) {
-                callbackContext.error(new JSONObject()
-                        .put(ControllerError.CODE, ControllerError.CODE_DISCONNECT)
+                callbackContext.error(new JSONObject().put(ControllerError.CODE, ControllerError.CODE_DISCONNECT)
                         .put(ControllerError.MESSAGE, ControllerError.MSG_DISCONNECT));
                 return true;
             } else {
@@ -113,9 +112,25 @@ public class Controller extends CordovaPlugin {
             String message = args.getString(0);
             this.lock(message, callbackContext);
             return true;
+        } else if (action.equals("pause")) {
+            String message = args.getString(0);
+            this.pause(message, callbackContext);
+            return true;
         } else if (action.equals("unLock")) {
             String message = args.getString(0);
             this.unLock(message, callbackContext);
+            return true;
+        } else if (action.equals("update")) {
+            String message = args.getString(0);
+            this.update(message, callbackContext);
+            return true;
+        } else if (action.equals("changeKPadPower")) {
+            boolean message = args.getBoolean(0);
+            this.changeKPadPower(message, callbackContext);
+            return true;
+        } else if (action.equals("changePPadSpeakerPower")) {
+            boolean message = args.getBoolean(0);
+            this.changePPadSpeakerPower(message, callbackContext);
             return true;
         }
         return false;
@@ -131,10 +146,54 @@ public class Controller extends CordovaPlugin {
         }
     }
 
+    private void pause(String message, CallbackContext callbackContext) {
+        try {
+            aidlBind.pause();
+            callbackContext.success(message);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+            callbackContext.error("Expected one non-empty string argument.");
+        }
+    }
+
     private void unLock(String message, CallbackContext callbackContext) {
         try {
             aidlBind.unLock();
             callbackContext.success(message);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+            callbackContext.error("Expected one non-empty string argument.");
+        }
+    }
+
+    private void update(String message, CallbackContext callbackContext) {
+        try {
+            aidlBind.update();
+            callbackContext.success(message);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+            callbackContext.error("Expected one non-empty string argument.");
+        }
+    }
+
+    private void changeKPadPower(boolean message, CallbackContext callbackContext) throws JSONException {
+        try {
+            aidlBind.changeKPadPower(message);
+            callbackContext.success(new JSONObject()
+                    .put(ControllerError.CODE, ControllerError.CODE_SUCCESS)
+                    .put(ControllerError.MESSAGE, ControllerError.MSG_SUCCESS));
+        } catch (RemoteException e) {
+            e.printStackTrace();
+            callbackContext.error("Expected one non-empty string argument.");
+        }
+    }
+
+    private void changePPadSpeakerPower(boolean message, CallbackContext callbackContext)  throws JSONException {
+        try {
+            aidlBind.changePPadSpeakerPower(message);
+            callbackContext.success(new JSONObject()
+                    .put(ControllerError.CODE, ControllerError.CODE_SUCCESS)
+                    .put(ControllerError.MESSAGE, ControllerError.MSG_SUCCESS));
         } catch (RemoteException e) {
             e.printStackTrace();
             callbackContext.error("Expected one non-empty string argument.");
