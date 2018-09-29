@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android" id="cordova-plugin-controller" version="1.0.6">  
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android" id="cordova-plugin-controller" version="1.0.9">  
   <name>Controller</name>  
   <js-module name="Controller" src="www/Controller.js"> 
     <clobbers target="cordova.plugins.Controller"/> 
@@ -15,5 +15,7 @@
     <source-file src="src/android/Controller.java" target-dir="src/com/mumatech/controller"/>
     <source-file src="src/android/ISTM8Controller.aidl" target-dir="src/com/mumatech/controller"/> 
     <source-file src="src/android/ControllerError.java" target-dir="src/com/mumatech/controller"/> 
+    <source-file src="src/android/TcpClientConnector.java" target-dir="src/com/mumatech/controller"/> 
+    <source-file src="src/android/STM8Status.java" target-dir="src/com/mumatech/controller"/> 
   </platform> 
 </plugin>

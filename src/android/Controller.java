@@ -1,5 +1,6 @@
 package com.mumatech.controller;
 
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -7,12 +8,17 @@ import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.RemoteException;
 
+import com.google.gson.Gson;
+
 import org.apache.cordova.CallbackContext;
+import org.apache.cordova.CordovaInterface;
 import org.apache.cordova.CordovaPlugin;
+import org.apache.cordova.CordovaWebView;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -35,6 +41,9 @@ public class Controller extends CordovaPlugin {
     private Lock locks = new ReentrantLock(true);
     private Condition bindCondition = locks.newCondition();
     // private Object lock = new Object();
+
+    private CallbackContext context;
+    private TcpClientConnector connector;
 
     private ServiceConnection aidlConnection = new ServiceConnection() {
         @Override
@@ -62,8 +71,16 @@ public class Controller extends CordovaPlugin {
         }
     };
 
+    private static Controller instance;
+    private static Activity cordovaActivity;
+
+    public Controller() {
+        instance = this;
+    }
+
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
+        context = callbackContext;
         if (!bindResult || !isConnect) {
             // 发起PolicyService绑定
             Intent intent = new Intent(ACTION);
@@ -132,6 +149,8 @@ public class Controller extends CordovaPlugin {
             boolean message = args.getBoolean(0);
             this.changePPadSpeakerPower(message, callbackContext);
             return true;
+        } else if (action.equals("callJSInit")) {
+            return true;
         }
         return false;
     }
@@ -188,7 +207,7 @@ public class Controller extends CordovaPlugin {
         }
     }
 
-    private void changePPadSpeakerPower(boolean message, CallbackContext callbackContext)  throws JSONException {
+    private void changePPadSpeakerPower(boolean message, CallbackContext callbackContext) throws JSONException {
         try {
             aidlBind.changePPadSpeakerPower(message);
             callbackContext.success(new JSONObject()
@@ -211,15 +230,64 @@ public class Controller extends CordovaPlugin {
     }
 
     @Override
+    public void initialize(CordovaInterface cordova, CordovaWebView webView) {
+        super.initialize(cordova, webView);
+        cordovaActivity = cordova.getActivity();
+    }
+
+    @Override
     protected void pluginInitialize() {
         super.pluginInitialize();
+        connector = TcpClientConnector.getInstance();
+        connector.setOnConnectLinstener(new TcpClientConnector.ConnectLinstener() {
+            @Override
+            public void onConnected() {
+            }
+
+            @Override
+            public void onDisConnected() {
+
+            }
+
+            @Override
+            public void onReceiveData(String data) {
+                String content = new Gson().toJson(STM8Status.initWithData(data));
+                callJSFunction(content);
+            }
+        });
+        connector.creatConnect("localhost", 8688);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        this.cordova.getActivity().unbindService(aidlConnection);
+        if (isConnect) {
+            this.cordova.getActivity().unbindService(aidlConnection);
+        }
         bindResult = false;
+        if (connector != null) {
+            try {
+                connector.disconnect();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        cordovaActivity = null;
+        instance = null;
     }
 
+    static void callJSFunction(String content) {
+        if (instance == null) {
+            return;
+        }
+        final String format = String.format("showAlert(%s)", content);
+
+        cordovaActivity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                instance.webView.loadUrl("javascript:" + format);
+            }
+        });
+
+    }
 }
