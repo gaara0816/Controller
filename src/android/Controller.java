@@ -1,9 +1,11 @@
 package com.mumatech.controller;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -18,7 +20,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -30,6 +31,10 @@ import java.util.concurrent.locks.ReentrantLock;
 public class Controller extends CordovaPlugin {
 
     private static final String ACTION = "com.mumatech.controller.ACTION";
+
+    private static final String ACTION_STATUS_REPORT = "com.mumatech.controller.ACTION_STATUS_REPORT";
+    private static final String ACTION_UNLOCk_RES = "com.mumatech.controller.ACTION_UNLOCk_RES";
+    private static final String ACTION_LOCK_RES = "com.mumatech.controller.ACTION_LOCK_RES";
 
     private static final long BIND_OUT_TIME = 3000;
 
@@ -43,7 +48,6 @@ public class Controller extends CordovaPlugin {
     // private Object lock = new Object();
 
     private CallbackContext context;
-    private TcpClientConnector connector;
 
     private ServiceConnection aidlConnection = new ServiceConnection() {
         @Override
@@ -73,6 +77,7 @@ public class Controller extends CordovaPlugin {
 
     private static Controller instance;
     private static Activity cordovaActivity;
+    private MyBroadcast broadcast;
 
     public Controller() {
         instance = this;
@@ -233,29 +238,15 @@ public class Controller extends CordovaPlugin {
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
         super.initialize(cordova, webView);
         cordovaActivity = cordova.getActivity();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(ACTION_STATUS_REPORT);
+        broadcast = new MyBroadcast();
+        cordovaActivity.registerReceiver(broadcast, filter);
     }
 
     @Override
     protected void pluginInitialize() {
         super.pluginInitialize();
-        connector = TcpClientConnector.getInstance();
-        connector.setOnConnectLinstener(new TcpClientConnector.ConnectLinstener() {
-            @Override
-            public void onConnected() {
-            }
-
-            @Override
-            public void onDisConnected() {
-
-            }
-
-            @Override
-            public void onReceiveData(String data) {
-                String content = new Gson().toJson(STM8Status.initWithData(data));
-                callJSFunction(content);
-            }
-        });
-        connector.creatConnect("localhost", 8688);
     }
 
     @Override
@@ -265,13 +256,8 @@ public class Controller extends CordovaPlugin {
             this.cordova.getActivity().unbindService(aidlConnection);
         }
         bindResult = false;
-        if (connector != null) {
-            try {
-                connector.disconnect();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+        cordovaActivity.unregisterReceiver(broadcast);
+        
         cordovaActivity = null;
         instance = null;
     }
@@ -280,7 +266,7 @@ public class Controller extends CordovaPlugin {
         if (instance == null) {
             return;
         }
-        final String format = String.format("showAlert(%s)", content);
+        final String format = String.format("statusReport(%s)", content);
 
         cordovaActivity.runOnUiThread(new Runnable() {
             @Override
@@ -288,6 +274,25 @@ public class Controller extends CordovaPlugin {
                 instance.webView.loadUrl("javascript:" + format);
             }
         });
+    }
 
+    private class MyBroadcast extends BroadcastReceiver {
+
+        public MyBroadcast() {
+            super();
+        }
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (ACTION_STATUS_REPORT.equals(action)) {
+                String status = intent.getStringExtra("status");
+                String content = new Gson().toJson(STM8Status.initWithData(status));
+                callJSFunction(content);
+            } else if (ACTION_UNLOCk_RES.equals(action)) {
+                String status = intent.getStringExtra("status");
+                callJSFunction(status);
+            }
+        }
     }
 }
