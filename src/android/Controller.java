@@ -66,21 +66,25 @@ public class Controller extends CordovaPlugin {
                     if (msg.getData() == null) {
                         return;
                     }
-
                     String command = msg.getData().getString(ConfigHelper.COMMAND_TYPE);
                     Log.d(TAG, "Message from server: " + command);
-                    String result = msg.getData().getString(ConfigHelper.COMMAND_RES_DATA);
-                    try {
-                        JSONObject jsonObject = new JSONObject(result);
-                        if (ConfigHelper.COMMAND_RES_SUCCESS.equals(jsonObject.getString(ConfigHelper.COMMAND_RES_CODE))) {
-                            mCallbackContext.success(jsonObject);
-                        } else {
-                            mCallbackContext.error(jsonObject);
+                    if (ConfigHelper.UNLOCK_CMD.equals(command)) {
+                        String data = msg.getData().getString(ConfigHelper.COMMAND_RES_DATA);
+                        Log.d(TAG, "Message from server: " + data);
+                        callJSFunction(ConfigHelper.CALL_UNLOCK, data);
+                    } else {
+                        String result = msg.getData().getString(ConfigHelper.COMMAND_RES_DATA);
+                        try {
+                            JSONObject jsonObject = new JSONObject(result);
+                            if (ConfigHelper.COMMAND_RES_SUCCESS.equals(jsonObject.getString(ConfigHelper.COMMAND_RES_CODE))) {
+                                mCallbackContext.success(jsonObject);
+                            } else {
+                                mCallbackContext.error(jsonObject);
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
                         }
-                    } catch (JSONException e) {
-                        e.printStackTrace();
                     }
-
                 }
             }
         });

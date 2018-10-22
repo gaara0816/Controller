@@ -13,6 +13,8 @@ public class ConfigHelper {
     public static final String COMMAND_RES_DATA = "data";
 
     public static final String UNLOCK_CMD = "UNLOCK";
+    public static final String CALL_UNLOCK = "callUnLock";
+    public static final String UNLOCK_STATUS = "unLockStatus";
     public static final String LOCK_CMD = "LOCK";
     public static final String PAUSE_CMD = "PAUSE";
     public static final String POWER_CMD = "POWER";
