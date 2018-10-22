@@ -1,16 +1,19 @@
 package com.mumatech.controller;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
+import android.os.Messenger;
 import android.os.RemoteException;
-
-import com.google.gson.Gson;
+import android.text.TextUtils;
+import android.util.Log;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaInterface;
@@ -25,62 +28,62 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+
 /**
  * This class echoes a string called from JavaScript.
  */
 public class Controller extends CordovaPlugin {
 
-    private static final String ACTION = "com.mumatech.controller.ACTION";
+    private static final String TAG = Controller.class.getSimpleName();
 
-    private static final String ACTION_STATUS_REPORT = "com.mumatech.controller.ACTION_STATUS_REPORT";
-    private static final String ACTION_UNLOCk_RES = "com.mumatech.controller.ACTION_UNLOCk_RES";
-    private static final String ACTION_LOCK_RES = "com.mumatech.controller.ACTION_LOCK_RES";
+    private static final String PKG_NAME = "com.mumatech.policyservice";
+    private static final String MQTT_ACTION = "com.mumatech.mqtt.START_SERVICE";
 
     private static final long BIND_OUT_TIME = 3000;
-
-    private ISTM8Controller aidlBind;
 
     private boolean bindResult;
     private boolean isConnect;
 
     private Lock locks = new ReentrantLock(true);
     private Condition bindCondition = locks.newCondition();
-    // private Object lock = new Object();
 
     private CallbackContext context;
 
-    private ServiceConnection aidlConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            aidlBind = ISTM8Controller.Stub.asInterface(service);
-            isConnect = true;
-            // synchronized (lock) {
-            // lock.notify();
-            // }
-            locks.lock();
-            bindCondition.signal();
-            locks.unlock();
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            aidlBind = null;
-            isConnect = false;
-            // synchronized (lock) {
-            // lock.notify();
-            // }
-            locks.lock();
-            bindCondition.signal();
-            locks.unlock();
-        }
-    };
-
     private static Controller instance;
     private static Activity cordovaActivity;
-    private MyBroadcast broadcast;
 
+    private Messenger mClientMessenger;
+
+    private CallbackContext mCallbackContext;
+
+    @SuppressLint("HandlerLeak")
     public Controller() {
         instance = this;
+        mClientMessenger = new Messenger(new Handler() {
+            @Override
+            public void handleMessage(final Message msg) {
+                if (msg != null && msg.arg1 == ConfigHelper.MSG_ID_SERVER) {
+                    if (msg.getData() == null) {
+                        return;
+                    }
+
+                    String command = msg.getData().getString(ConfigHelper.COMMAND_TYPE);
+                    Log.d(TAG, "Message from server: " + command);
+                    String result = msg.getData().getString(ConfigHelper.COMMAND_RES_DATA);
+                    try {
+                        JSONObject jsonObject = new JSONObject(result);
+                        if (ConfigHelper.COMMAND_RES_SUCCESS.equals(jsonObject.getString(ConfigHelper.COMMAND_RES_CODE))) {
+                            mCallbackContext.success(jsonObject);
+                        } else {
+                            mCallbackContext.error(jsonObject);
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+            }
+        });
     }
 
     @Override
@@ -88,20 +91,7 @@ public class Controller extends CordovaPlugin {
         context = callbackContext;
         if (!bindResult || !isConnect) {
             // 发起PolicyService绑定
-            Intent intent = new Intent(ACTION);
-            intent.setPackage("com.mumatech.policyservice");
-            bindResult = Controller.this.cordova.getActivity().getApplicationContext().bindService(intent,
-                    aidlConnection, Context.BIND_AUTO_CREATE);
-
-            // 等待绑定结果，设置超时时间
-
-            // synchronized (lock) {
-            // try {
-            // lock.wait(3000);
-            // } catch (InterruptedException e) {
-            // e.printStackTrace();
-            // }
-            // }
+            bindMessengerService();
 
             locks.lock();
             try {
@@ -142,17 +132,9 @@ public class Controller extends CordovaPlugin {
             String message = args.getString(0);
             this.unLock(message, callbackContext);
             return true;
-        } else if (action.equals("update")) {
+        } else if (action.equals("power")) {
             String message = args.getString(0);
-            this.update(message, callbackContext);
-            return true;
-        } else if (action.equals("changeKPadPower")) {
-            boolean message = args.getBoolean(0);
-            this.changeKPadPower(message, callbackContext);
-            return true;
-        } else if (action.equals("changePPadSpeakerPower")) {
-            boolean message = args.getBoolean(0);
-            this.changePPadSpeakerPower(message, callbackContext);
+            this.power(message, callbackContext);
             return true;
         } else if (action.equals("callJSInit")) {
             return true;
@@ -161,67 +143,23 @@ public class Controller extends CordovaPlugin {
     }
 
     private void lock(String message, CallbackContext callbackContext) {
-        try {
-            aidlBind.lock();
-            callbackContext.success(message);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            callbackContext.error("Expected one non-empty string argument.");
-        }
+        mCallbackContext = callbackContext;
+        sendMsg(ConfigHelper.LOCK_CMD, null);
     }
 
     private void pause(String message, CallbackContext callbackContext) {
-        try {
-            aidlBind.pause();
-            callbackContext.success(message);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            callbackContext.error("Expected one non-empty string argument.");
-        }
+        mCallbackContext = callbackContext;
+        sendMsg(ConfigHelper.PAUSE_CMD, null);
     }
 
     private void unLock(String message, CallbackContext callbackContext) {
-        try {
-            aidlBind.unLock();
-            callbackContext.success(message);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            callbackContext.error("Expected one non-empty string argument.");
-        }
+        mCallbackContext = callbackContext;
+        sendMsg(ConfigHelper.UNLOCK_CMD, null);
     }
 
-    private void update(String message, CallbackContext callbackContext) {
-        try {
-            aidlBind.update();
-            callbackContext.success(message);
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            callbackContext.error("Expected one non-empty string argument.");
-        }
-    }
-
-    private void changeKPadPower(boolean message, CallbackContext callbackContext) throws JSONException {
-        try {
-            aidlBind.changeKPadPower(message);
-            callbackContext.success(new JSONObject()
-                    .put(ControllerError.CODE, ControllerError.CODE_SUCCESS)
-                    .put(ControllerError.MESSAGE, ControllerError.MSG_SUCCESS));
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            callbackContext.error("Expected one non-empty string argument.");
-        }
-    }
-
-    private void changePPadSpeakerPower(boolean message, CallbackContext callbackContext) throws JSONException {
-        try {
-            aidlBind.changePPadSpeakerPower(message);
-            callbackContext.success(new JSONObject()
-                    .put(ControllerError.CODE, ControllerError.CODE_SUCCESS)
-                    .put(ControllerError.MESSAGE, ControllerError.MSG_SUCCESS));
-        } catch (RemoteException e) {
-            e.printStackTrace();
-            callbackContext.error("Expected one non-empty string argument.");
-        }
+    private void power(String message, CallbackContext callbackContext) {
+        mCallbackContext = callbackContext;
+        sendMsg(ConfigHelper.POWER_CMD, null);
     }
 
     @Override
@@ -238,10 +176,7 @@ public class Controller extends CordovaPlugin {
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
         super.initialize(cordova, webView);
         cordovaActivity = cordova.getActivity();
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(ACTION_STATUS_REPORT);
-        broadcast = new MyBroadcast();
-        cordovaActivity.registerReceiver(broadcast, filter);
+        bindMessengerService();
     }
 
     @Override
@@ -253,20 +188,18 @@ public class Controller extends CordovaPlugin {
     public void onDestroy() {
         super.onDestroy();
         if (isConnect) {
-            this.cordova.getActivity().unbindService(aidlConnection);
+            cordovaActivity.unbindService(mMessengerConnection);
         }
         bindResult = false;
-        cordovaActivity.unregisterReceiver(broadcast);
-        
         cordovaActivity = null;
         instance = null;
     }
 
-    static void callJSFunction(String content) {
+    static void callJSFunction(String function, String content) {
         if (instance == null) {
             return;
         }
-        final String format = String.format("statusReport(%s)", content);
+        final String format = String.format("%s(%s)", function, content);
 
         cordovaActivity.runOnUiThread(new Runnable() {
             @Override
@@ -276,23 +209,53 @@ public class Controller extends CordovaPlugin {
         });
     }
 
-    private class MyBroadcast extends BroadcastReceiver {
+    //服务端的 Messenger
+    private Messenger mServerMessenger;
 
-        public MyBroadcast() {
-            super();
+    private ServiceConnection mMessengerConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(final ComponentName name, final IBinder service) {
+            mServerMessenger = new Messenger(service);
+            isConnect = true;
+            locks.lock();
+            bindCondition.signal();
+            locks.unlock();
         }
 
         @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (ACTION_STATUS_REPORT.equals(action)) {
-                String status = intent.getStringExtra("status");
-                String content = new Gson().toJson(STM8Status.initWithData(status));
-                callJSFunction(content);
-            } else if (ACTION_UNLOCk_RES.equals(action)) {
-                String status = intent.getStringExtra("status");
-                callJSFunction(status);
-            }
+        public void onServiceDisconnected(final ComponentName name) {
+            mServerMessenger = null;
+            isConnect = false;
+            locks.lock();
+            bindCondition.signal();
+            locks.unlock();
+        }
+    };
+
+    private void bindMessengerService() {
+        Intent intent = new Intent(MQTT_ACTION);
+        intent.setPackage(PKG_NAME);
+        bindResult = cordovaActivity.bindService(intent, mMessengerConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    public void sendMsg(String command, String msgContent) {
+        msgContent = TextUtils.isEmpty(msgContent) ? "默认消息" : msgContent;
+
+        Message message = Message.obtain();
+        message.arg1 = ConfigHelper.MSG_ID_CLIENT;
+        Bundle bundle = new Bundle();
+        bundle.putString(ConfigHelper.COMMAND_TYPE, command);
+        if (!TextUtils.isEmpty(msgContent)) {
+            bundle.putString(ConfigHelper.COMMAND_DATA, msgContent);
+        }
+        message.setData(bundle);
+        message.replyTo = mClientMessenger;     //指定回信人是客户端定义的
+
+        try {
+            mServerMessenger.send(message);
+        } catch (RemoteException e) {
+            e.printStackTrace();
         }
     }
+
 }

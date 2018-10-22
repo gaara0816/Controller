@@ -1,25 +1,27 @@
 var exec = require('cordova/exec');
 
-exports.lock = function (arg0, success, error) {
-    exec(success, error, 'Controller', 'lock', [arg0]);
+exports.lock = function (success, error) {
+    exec(success, error, 'Controller', 'lock', []);
 };
 
-exports.pause = function (arg0, success, error) {
-    exec(success, error, 'Controller', 'pause', [arg0]);
+exports.pause = function (success, error) {
+    exec(success, error, 'Controller', 'pause', []);
 };
 
-exports.unLock = function (arg0, success, error) {
-    exec(success, error, 'Controller', 'unLock', [arg0]);
+exports.unLock = function (success, error) {
+    exec(success, error, 'Controller', 'unLock', []);
 };
 
-exports.update = function (arg0, success, error) {
-    exec(success, error, 'Controller', 'update', [arg0]);
+exports.power = function (success, error) {
+    exec(success, error, 'Controller', 'power', []);
 };
 
-exports.changeKPadPower = function (arg0, success, error) {
-    exec(success, error, 'Controller', 'changeKPadPower', [arg0]);
-};
-
-exports.changePPadSpeakerPower = function (arg0, success, error) {
-    exec(success, error, 'Controller', 'changePPadSpeakerPower', [arg0]);
-};
+exports.callJSInit = function () {
+    cordova.require('cordova/channel').onCordovaReady.subscribe(function () {
+        exec(succeedCallback, null, "Controller", "callJSInit", []);
+        function succeedCallback(message) {
+            //执行js代码
+            eval(message);
+        }
+    });
+}
