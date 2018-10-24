@@ -1,5 +1,9 @@
 var exec = require('cordova/exec');
 
+exports.initialize = function () {
+    exec(undefined, undefined, 'Controller', 'initialize', []);
+};
+
 exports.lock = function (success, error) {
     exec(success, error, 'Controller', 'lock', []);
 };

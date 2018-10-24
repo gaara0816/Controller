@@ -23,6 +23,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -95,7 +96,7 @@ public class Controller extends CordovaPlugin {
         context = callbackContext;
         if (!bindResult || !isConnect) {
             // 发起PolicyService绑定
-            bindMessengerService();
+            startService(null);
 
             locks.lock();
             try {
@@ -125,45 +126,49 @@ public class Controller extends CordovaPlugin {
 
     private boolean handler(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
         if (action.equals("lock")) {
-            String message = args.getString(0);
-            this.lock(message, callbackContext);
+            this.lock(callbackContext);
             return true;
         } else if (action.equals("pause")) {
-            String message = args.getString(0);
-            this.pause(message, callbackContext);
+            this.pause(callbackContext);
             return true;
         } else if (action.equals("unLock")) {
-            String message = args.getString(0);
-            this.unLock(message, callbackContext);
+            this.unLock(callbackContext);
             return true;
         } else if (action.equals("power")) {
-            String message = args.getString(0);
-            this.power(message, callbackContext);
+            this.power(callbackContext);
             return true;
         } else if (action.equals("callJSInit")) {
+            return true;
+        } else if (action.equals("initialize")) {
+            this.init(callbackContext);
             return true;
         }
         return false;
     }
 
-    private void lock(String message, CallbackContext callbackContext) {
+    private void lock(CallbackContext callbackContext) {
         mCallbackContext = callbackContext;
         sendMsg(ConfigHelper.LOCK_CMD, null);
     }
 
-    private void pause(String message, CallbackContext callbackContext) {
+    private void pause(CallbackContext callbackContext) {
         mCallbackContext = callbackContext;
         sendMsg(ConfigHelper.PAUSE_CMD, null);
     }
 
-    private void unLock(String message, CallbackContext callbackContext) {
+    private void unLock(CallbackContext callbackContext) {
         mCallbackContext = callbackContext;
         sendMsg(ConfigHelper.UNLOCK_CMD, null);
     }
 
-    private void power(String message, CallbackContext callbackContext) {
+    private void power(CallbackContext callbackContext) {
         mCallbackContext = callbackContext;
         sendMsg(ConfigHelper.POWER_CMD, null);
+    }
+
+    private void init(CallbackContext callbackContext) {
+        mCallbackContext = callbackContext;
+        sendMsg(ConfigHelper.POWER_INIT, null);
     }
 
     @Override
@@ -180,7 +185,6 @@ public class Controller extends CordovaPlugin {
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
         super.initialize(cordova, webView);
         cordovaActivity = cordova.getActivity();
-        bindMessengerService();
     }
 
     @Override
@@ -237,6 +241,24 @@ public class Controller extends CordovaPlugin {
     };
 
     private void bindMessengerService() {
+        Intent intent = new Intent(MQTT_ACTION);
+        intent.setPackage(PKG_NAME);
+        bindResult = cordovaActivity.bindService(intent, mMessengerConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    private void startService(Bundle extras) {
+//        if (!UsbService.SERVICE_CONNECTED) {
+            Intent startService = new Intent(MQTT_ACTION);
+            if (extras != null && !extras.isEmpty()) {
+                Set<String> keys = extras.keySet();
+                for (String key : keys) {
+                    String extra = extras.getString(key);
+                    startService.putExtra(key, extra);
+                }
+            }
+            startService.setPackage(PKG_NAME);
+            cordovaActivity.startService(startService);
+//        }
         Intent intent = new Intent(MQTT_ACTION);
         intent.setPackage(PKG_NAME);
         bindResult = cordovaActivity.bindService(intent, mMessengerConnection, Context.BIND_AUTO_CREATE);
