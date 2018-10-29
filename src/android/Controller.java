@@ -71,8 +71,10 @@ public class Controller extends CordovaPlugin {
                     Log.d(TAG, "Message from server: " + command);
                     if (ConfigHelper.UNLOCK_CMD.equals(command)) {
                         String data = msg.getData().getString(ConfigHelper.COMMAND_RES_DATA);
-                        Log.d(TAG, "Message from server: " + data);
                         callJSFunction(ConfigHelper.CALL_UNLOCK, data);
+                    } else if (ConfigHelper.LOCK_CMD_REMOTE.equals(command)) {
+                        String data = msg.getData().getString(ConfigHelper.COMMAND_RES_DATA);
+                        callJSFunction(ConfigHelper.CALL_LOCK, data);
                     } else {
                         String result = msg.getData().getString(ConfigHelper.COMMAND_RES_DATA);
                         try {
@@ -248,16 +250,16 @@ public class Controller extends CordovaPlugin {
 
     private void startService(Bundle extras) {
 //        if (!UsbService.SERVICE_CONNECTED) {
-            Intent startService = new Intent(MQTT_ACTION);
-            if (extras != null && !extras.isEmpty()) {
-                Set<String> keys = extras.keySet();
-                for (String key : keys) {
-                    String extra = extras.getString(key);
-                    startService.putExtra(key, extra);
-                }
+        Intent startService = new Intent(MQTT_ACTION);
+        if (extras != null && !extras.isEmpty()) {
+            Set<String> keys = extras.keySet();
+            for (String key : keys) {
+                String extra = extras.getString(key);
+                startService.putExtra(key, extra);
             }
-            startService.setPackage(PKG_NAME);
-            cordovaActivity.startService(startService);
+        }
+        startService.setPackage(PKG_NAME);
+        cordovaActivity.startService(startService);
 //        }
         Intent intent = new Intent(MQTT_ACTION);
         intent.setPackage(PKG_NAME);
