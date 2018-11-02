@@ -21,5 +21,5 @@ public class ConfigHelper {
     public static final String LOCK_CMD_REMOTE = "LOCK_REMOTE";
     public static final String PAUSE_CMD = "PAUSE";
     public static final String POWER_CMD = "POWER";
-    public static final String POWER_INIT = "INIT";
+    public static final String INIT_CMD = "INIT";
 }

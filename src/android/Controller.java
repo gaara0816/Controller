@@ -68,15 +68,14 @@ public class Controller extends CordovaPlugin {
                         return;
                     }
                     String command = msg.getData().getString(ConfigHelper.COMMAND_TYPE);
-                    Log.d(TAG, "Message from server: " + command);
+                    String result = msg.getData().getString(ConfigHelper.COMMAND_RES_DATA);
+                    Log.d(TAG, "Message from server command: " + command);
+                    Log.d(TAG, "Message from server result: " + result);
                     if (ConfigHelper.UNLOCK_CMD.equals(command)) {
-                        String data = msg.getData().getString(ConfigHelper.COMMAND_RES_DATA);
-                        callJSFunction(ConfigHelper.CALL_UNLOCK, data);
+                        callJSFunction(ConfigHelper.CALL_UNLOCK, result);
                     } else if (ConfigHelper.LOCK_CMD_REMOTE.equals(command)) {
-                        String data = msg.getData().getString(ConfigHelper.COMMAND_RES_DATA);
-                        callJSFunction(ConfigHelper.CALL_LOCK, data);
+                        callJSFunction(ConfigHelper.CALL_LOCK, result);
                     } else {
-                        String result = msg.getData().getString(ConfigHelper.COMMAND_RES_DATA);
                         try {
                             JSONObject jsonObject = new JSONObject(result);
                             if (ConfigHelper.COMMAND_RES_SUCCESS.equals(jsonObject.getString(ConfigHelper.COMMAND_RES_CODE))) {
@@ -170,7 +169,7 @@ public class Controller extends CordovaPlugin {
 
     private void init(CallbackContext callbackContext) {
         mCallbackContext = callbackContext;
-        sendMsg(ConfigHelper.POWER_INIT, null);
+        sendMsg(ConfigHelper.INIT_CMD, null);
     }
 
     @Override
