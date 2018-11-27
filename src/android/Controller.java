@@ -2,9 +2,12 @@ package com.mumatech.controller;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.ActivityManager;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.Handler;
@@ -12,6 +15,7 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -23,6 +27,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -56,6 +61,8 @@ public class Controller extends CordovaPlugin {
     private Messenger mClientMessenger;
 
     private CallbackContext mCallbackContext;
+
+    private TikBroadcastReceiver receiver;
 
     @SuppressLint("HandlerLeak")
     public Controller() {
@@ -143,6 +150,9 @@ public class Controller extends CordovaPlugin {
         } else if (action.equals("initialize")) {
             this.init(callbackContext);
             return true;
+        } else if (action.equals("gotoSettings")) {
+            this.gotoSettings(callbackContext);
+            return true;
         }
         return false;
     }
@@ -172,6 +182,10 @@ public class Controller extends CordovaPlugin {
         sendMsg(ConfigHelper.INIT_CMD, null);
     }
 
+    private void gotoSettings(CallbackContext callbackContext) {
+        cordovaActivity.startActivity(new Intent(Settings.ACTION_SETTINGS));
+    }
+
     @Override
     public void onStart() {
         super.onStart();
@@ -186,6 +200,7 @@ public class Controller extends CordovaPlugin {
     public void initialize(CordovaInterface cordova, CordovaWebView webView) {
         super.initialize(cordova, webView);
         cordovaActivity = cordova.getActivity();
+        register();
     }
 
     @Override
@@ -199,6 +214,7 @@ public class Controller extends CordovaPlugin {
         if (isConnect) {
             cordovaActivity.unbindService(mMessengerConnection);
         }
+        unRegister();
         bindResult = false;
         cordovaActivity = null;
         instance = null;
@@ -241,12 +257,6 @@ public class Controller extends CordovaPlugin {
         }
     };
 
-    private void bindMessengerService() {
-        Intent intent = new Intent(MQTT_ACTION);
-        intent.setPackage(PKG_NAME);
-        bindResult = cordovaActivity.bindService(intent, mMessengerConnection, Context.BIND_AUTO_CREATE);
-    }
-
     private void startService(Bundle extras) {
 //        if (!UsbService.SERVICE_CONNECTED) {
         Intent startService = new Intent(MQTT_ACTION);
@@ -285,4 +295,40 @@ public class Controller extends CordovaPlugin {
         }
     }
 
+    private void register() {
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_TIME_TICK);
+        receiver = new TikBroadcastReceiver();
+        cordovaActivity.registerReceiver(receiver, filter);
+    }
+
+    private void unRegister() {
+        cordovaActivity.unregisterReceiver(receiver);
+    }
+
+    private class TikBroadcastReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+//            if (isServiceExisted(cordovaActivity, "com.mumatech.mqtt.MQTTService")) {
+//                startService(null);
+//            }
+            startService(null);
+        }
+    }
+
+    public boolean isServiceExisted(Context context, String className) {
+        ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningServiceInfo> serviceList = activityManager.getRunningServices(Integer.MAX_VALUE);
+        if (!(serviceList.size() > 0)) {
+            return false;
+        }
+        for (int i = 0; i < serviceList.size(); i++) {
+            ActivityManager.RunningServiceInfo serviceInfo = serviceList.get(i);
+            ComponentName serviceName = serviceInfo.service;
+            if (serviceName.getClassName().equals(className)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

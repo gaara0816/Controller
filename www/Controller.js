@@ -20,6 +20,10 @@ exports.power = function (success, error) {
     exec(success, error, 'Controller', 'power', []);
 };
 
+exports.gotoSettings = function () {
+    exec(undefined, undefined, 'Controller', 'gotoSettings', []);
+};
+
 exports.callJSInit = function () {
     cordova.require('cordova/channel').onCordovaReady.subscribe(function () {
         exec(succeedCallback, null, "Controller", "callJSInit", []);
