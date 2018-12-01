@@ -3,6 +3,7 @@ package com.mumatech.controller;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.app.LauncherActivity;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -78,21 +79,15 @@ public class Controller extends CordovaPlugin {
                     String result = msg.getData().getString(ConfigHelper.COMMAND_RES_DATA);
                     Log.d(TAG, "Message from server command: " + command);
                     Log.d(TAG, "Message from server result: " + result);
-                    if (ConfigHelper.UNLOCK_CMD.equals(command)) {
-                        callJSFunction(ConfigHelper.CALL_UNLOCK, result);
-                    } else if (ConfigHelper.LOCK_CMD_REMOTE.equals(command)) {
-                        callJSFunction(ConfigHelper.CALL_LOCK, result);
-                    } else {
-                        try {
-                            JSONObject jsonObject = new JSONObject(result);
-                            if (ConfigHelper.COMMAND_RES_SUCCESS.equals(jsonObject.getString(ConfigHelper.COMMAND_RES_CODE))) {
-                                mCallbackContext.success(jsonObject);
-                            } else {
-                                mCallbackContext.error(jsonObject);
-                            }
-                        } catch (JSONException e) {
-                            e.printStackTrace();
+                    try {
+                        JSONObject jsonObject = new JSONObject(result);
+                        if (ConfigHelper.COMMAND_RES_SUCCESS.equals(jsonObject.getString(ConfigHelper.COMMAND_RES_CODE))) {
+                            mCallbackContext.success(jsonObject);
+                        } else {
+                            mCallbackContext.error(jsonObject);
                         }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
                     }
                 }
             }
@@ -101,34 +96,38 @@ public class Controller extends CordovaPlugin {
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
-        context = callbackContext;
-        if (!bindResult || !isConnect) {
-            // 发起PolicyService绑定
-            startService(null);
+        if ("gotoSettings".equals(action) || "initialize".equals(action)) {
+            return handler(action, args, callbackContext);
+        } else {
+            context = callbackContext;
+            if (!bindResult || !isConnect) {
+                // 发起PolicyService绑定
+                startService(null);
 
-            locks.lock();
-            try {
-                bindCondition.await(BIND_OUT_TIME, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } finally {
-                locks.unlock();
-            }
+                locks.lock();
+                try {
+                    bindCondition.await(BIND_OUT_TIME, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } finally {
+                    locks.unlock();
+                }
 
-            // 根据
-            if (!bindResult) {
-                callbackContext.error(new JSONObject().put(ControllerError.CODE, ControllerError.CODE_UNINSTALL)
-                        .put(ControllerError.MESSAGE, ControllerError.MSG_UNINSTALL));
-                return true;
-            } else if (!isConnect) {
-                callbackContext.error(new JSONObject().put(ControllerError.CODE, ControllerError.CODE_DISCONNECT)
-                        .put(ControllerError.MESSAGE, ControllerError.MSG_DISCONNECT));
-                return true;
+                // 根据
+                if (!bindResult) {
+                    callbackContext.error(new JSONObject().put(ControllerError.CODE, ControllerError.CODE_UNINSTALL)
+                            .put(ControllerError.MESSAGE, ControllerError.MSG_UNINSTALL));
+                    return true;
+                } else if (!isConnect) {
+                    callbackContext.error(new JSONObject().put(ControllerError.CODE, ControllerError.CODE_DISCONNECT)
+                            .put(ControllerError.MESSAGE, ControllerError.MSG_DISCONNECT));
+                    return true;
+                } else {
+                    return handler(action, args, callbackContext);
+                }
             } else {
                 return handler(action, args, callbackContext);
             }
-        } else {
-            return handler(action, args, callbackContext);
         }
     }
 
@@ -179,11 +178,22 @@ public class Controller extends CordovaPlugin {
 
     private void init(CallbackContext callbackContext) {
         mCallbackContext = callbackContext;
-        sendMsg(ConfigHelper.INIT_CMD, null);
+        JSONObject jsonObject = new JSONObject();
+        try {
+            jsonObject.put(ConfigHelper.COMMAND_RES_CODE, ConfigHelper.COMMAND_RES_SUCCESS);
+            JSONObject data = new JSONObject();
+            data.put("deviceId", AndroidUtil.getMac(cordovaActivity.getApplicationContext()));
+            jsonObject.put(ConfigHelper.COMMAND_RES_DATA, data);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        mCallbackContext.success(jsonObject);
     }
 
     private void gotoSettings(CallbackContext callbackContext) {
-        cordovaActivity.startActivity(new Intent(Settings.ACTION_SETTINGS));
+        Intent intent = new Intent();
+        intent.setComponent(new ComponentName("com.android.launcher3", "com.android.launcher3.Launcher"));
+        cordovaActivity.startActivity(intent);
     }
 
     @Override
@@ -218,20 +228,6 @@ public class Controller extends CordovaPlugin {
         bindResult = false;
         cordovaActivity = null;
         instance = null;
-    }
-
-    static void callJSFunction(String function, String content) {
-        if (instance == null) {
-            return;
-        }
-        final String format = String.format("%s(%s)", function, content);
-
-        cordovaActivity.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                instance.webView.loadUrl("javascript:" + format);
-            }
-        });
     }
 
     //服务端的 Messenger
