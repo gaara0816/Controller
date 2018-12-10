@@ -1,10 +1,16 @@
 package com.mumatech.controller;
 
+import android.annotation.SuppressLint;
+import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
+import android.telephony.TelephonyManager;
 import android.text.TextUtils;
+import android.util.Log;
+
+// import net.vidageek.mirror.dsl.Mirror;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -14,9 +20,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-
 public class AndroidUtil {
     private static final String TAG = AndroidUtil.class.getSimpleName();
+
+    public static String blcMac;
 
     public static String deviceId = null;
 
@@ -146,12 +153,17 @@ public class AndroidUtil {
         return data.replaceAll(":", "").toUpperCase();
     }
 
+    public static String getDeviceID(Context context) {
+        // return getIMEI(context);
+        return getWlanMAC(context);
+    }
+
     /**
      * 获取mac地址（适配所有Android版本）
      *
      * @return
      */
-    public static String getMac(Context context) {
+    public static String getWlanMAC(Context context) {
         if (deviceId == null) {
             String mac = "02:00:00:00:00:00";
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
@@ -165,5 +177,49 @@ public class AndroidUtil {
             deviceId = format(mac);
         }
         return deviceId;
+    }
+
+    // public static String getBtAddressViaReflection() {
+    //     if (blcMac == null) {
+    //         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+    //         Object bluetoothManagerService = new Mirror().on(bluetoothAdapter).get().field("mService");
+    //         if (bluetoothManagerService == null) {
+    //             Log.w(TAG, "couldn't find bluetoothManagerService");
+    //             return blcMac;
+    //         }
+    //         Object address = new Mirror().on(bluetoothManagerService).invoke().method("getAddress").withoutArgs();
+    //         if (address != null && address instanceof String) {
+    //             Log.w(TAG, "using reflection to get the BT MAC address: " + address);
+    //             blcMac = (String) address;
+    //         }
+    //     }
+    //     return blcMac;
+    // }
+
+    /**
+     * 获取手机IMEI
+     *
+     * @param context
+     * @return
+     */
+    @SuppressLint("MissingPermission")
+    public static String getIMEI(Context context) {
+        String imei;
+        //实例化TelephonyManager对象
+        TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+        //获取IMEI号
+//        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+//            // TODO: Consider calling
+//            //    ActivityCompat#requestPermissions
+//            // here to request the missing permissions, and then overriding
+//            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+//            //                                          int[] grantResults)
+//            // to handle the case where the user grants the permission. See the documentation
+//            // for ActivityCompat#requestPermissions for more details.
+//            return TODO;
+//        } else {
+        imei = telephonyManager.getDeviceId();
+//        }
+        return imei;
     }
 }

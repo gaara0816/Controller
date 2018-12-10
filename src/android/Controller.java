@@ -182,7 +182,7 @@ public class Controller extends CordovaPlugin {
         try {
             jsonObject.put(ConfigHelper.COMMAND_RES_CODE, ConfigHelper.COMMAND_RES_SUCCESS);
             JSONObject data = new JSONObject();
-            data.put("deviceId", AndroidUtil.getMac(cordovaActivity.getApplicationContext()));
+            data.put("deviceId", AndroidUtil.getDeviceID(cordovaActivity.getApplicationContext()));
             jsonObject.put(ConfigHelper.COMMAND_RES_DATA, data);
         } catch (JSONException e) {
             e.printStackTrace();
