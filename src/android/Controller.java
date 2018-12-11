@@ -3,20 +3,19 @@ package com.mumatech.controller;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
-import android.app.LauncherActivity;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
-import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -96,7 +95,7 @@ public class Controller extends CordovaPlugin {
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
-        if ("gotoSettings".equals(action) || "initialize".equals(action)) {
+        if ("gotoSettings".equals(action) || "initialize".equals(action) || "videoPlay".equals(action)) {
             return handler(action, args, callbackContext);
         } else {
             context = callbackContext;
@@ -152,6 +151,9 @@ public class Controller extends CordovaPlugin {
         } else if (action.equals("gotoSettings")) {
             this.gotoSettings(callbackContext);
             return true;
+        } else if (action.equals("videoPlay")) {
+            this.videoPlayer(args, callbackContext);
+            return true;
         }
         return false;
     }
@@ -194,6 +196,22 @@ public class Controller extends CordovaPlugin {
         Intent intent = new Intent();
         intent.setComponent(new ComponentName("com.android.launcher3", "com.android.launcher3.Launcher"));
         cordovaActivity.startActivity(intent);
+    }
+
+    private void videoPlayer(JSONArray args, CallbackContext callbackContext) {
+        Intent intent = new Intent("com.mumatech.video.PLAYER");
+        intent.setComponent(new ComponentName("com.mumatech.kpadlauncher", "com.mumatech.video.VideoPlayer"));
+        try {
+            JSONObject jsonObject = args.getJSONObject(0);
+            String path = jsonObject.getString("path");
+            Uri uri = Uri.parse(path);
+            intent.setDataAndType(uri, "video/*");
+            cordovaActivity.startActivity(intent);
+        } catch (JSONException e) {
+            e.printStackTrace();
+            callbackContext.error("");
+        }
+
     }
 
     @Override

@@ -24,6 +24,12 @@ exports.gotoSettings = function () {
     exec(undefined, undefined, 'Controller', 'gotoSettings', []);
 };
 
+exports.videoPlay = function (path, success, error) {
+    exec(success, error, 'Controller', 'videoPlay', [
+        {"path": path}
+    ]);
+};
+
 exports.callJSInit = function () {
     cordova.require('cordova/channel').onCordovaReady.subscribe(function () {
         exec(succeedCallback, null, "Controller", "callJSInit", []);
