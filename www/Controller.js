@@ -24,10 +24,8 @@ exports.gotoSettings = function () {
     exec(undefined, undefined, 'Controller', 'gotoSettings', []);
 };
 
-exports.videoPlay = function (path, success, error) {
-    exec(success, error, 'Controller', 'videoPlay', [
-        {"path": path}
-    ]);
+exports.offLineLock = function (success, error) {
+    exec(success, error, 'Controller', 'offLineLock', []);
 };
 
 exports.callJSInit = function () {

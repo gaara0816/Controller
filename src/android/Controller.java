@@ -95,7 +95,7 @@ public class Controller extends CordovaPlugin {
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
-        if ("gotoSettings".equals(action) || "initialize".equals(action) || "videoPlay".equals(action)) {
+        if ("gotoSettings".equals(action) || "initialize".equals(action)) {
             return handler(action, args, callbackContext);
         } else {
             context = callbackContext;
@@ -151,8 +151,8 @@ public class Controller extends CordovaPlugin {
         } else if (action.equals("gotoSettings")) {
             this.gotoSettings(callbackContext);
             return true;
-        } else if (action.equals("videoPlay")) {
-            this.videoPlayer(args, callbackContext);
+        } else if (action.equals("offLineLock")) {
+            this.offLineLock(callbackContext);
             return true;
         }
         return false;
@@ -198,20 +198,9 @@ public class Controller extends CordovaPlugin {
         cordovaActivity.startActivity(intent);
     }
 
-    private void videoPlayer(JSONArray args, CallbackContext callbackContext) {
-        Intent intent = new Intent("com.mumatech.video.PLAYER");
-        intent.setComponent(new ComponentName("com.mumatech.kpadlauncher", "com.mumatech.video.VideoPlayer"));
-        try {
-            JSONObject jsonObject = args.getJSONObject(0);
-            String path = jsonObject.getString("path");
-            Uri uri = Uri.parse(path);
-            intent.setDataAndType(uri, "video/*");
-            cordovaActivity.startActivity(intent);
-        } catch (JSONException e) {
-            e.printStackTrace();
-            callbackContext.error("");
-        }
-
+    private void offLineLock(CallbackContext callbackContext) {
+        mCallbackContext = callbackContext;
+        sendMsg(ConfigHelper.LOCK_OFF_LINE_CMD, null);
     }
 
     @Override

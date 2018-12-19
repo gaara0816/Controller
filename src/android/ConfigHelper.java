@@ -19,6 +19,7 @@ public class ConfigHelper {
     public static final String UNLOCK_STATUS = "unLockStatus";
     public static final String LOCK_CMD = "LOCK";
     public static final String LOCK_CMD_REMOTE = "LOCK_REMOTE";
+    public static final String LOCK_OFF_LINE_CMD = "LOCK_OFF_LINE";
     public static final String PAUSE_CMD = "PAUSE";
     public static final String POWER_CMD = "POWER";
     public static final String INIT_CMD = "INIT";
