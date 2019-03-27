@@ -193,8 +193,12 @@ public class Controller extends CordovaPlugin {
     }
 
     private void gotoSettings(CallbackContext callbackContext) {
-        Intent intent = new Intent();
-        intent.setComponent(new ComponentName("com.android.launcher3", "com.android.launcher3.Launcher"));
+        // Intent intent = new Intent();
+        // intent.setComponent(new ComponentName("com.android.launcher3", "com.android.launcher3.Launcher"));
+        // cordovaActivity.startActivity(intent);
+
+        Intent intent = new Intent("com.mumatech.ama.ACTION_MANAGE");
+        intent.setComponent(new ComponentName("com.mumatech.ama", "com.mumatech.ama.MainActivity"));
         cordovaActivity.startActivity(intent);
     }
 
