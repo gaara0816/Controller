@@ -23,6 +23,7 @@ import java.util.Locale;
 public class AndroidUtil {
     private static final String TAG = AndroidUtil.class.getSimpleName();
 
+    private static final String POSEIDON = "Poseidon";
     public static String blcMac;
 
     public static String deviceId = null;
@@ -154,8 +155,11 @@ public class AndroidUtil {
     }
 
     public static String getDeviceID(Context context) {
-        // return getIMEI(context);
-        return getWlanMAC(context);
+        if (Build.MODEL.equals(POSEIDON)) {
+            return Build.getSerial();
+        } else {
+            return getWlanMAC(context);
+        }
     }
 
     /**

@@ -5,10 +5,13 @@ import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -95,7 +98,7 @@ public class Controller extends CordovaPlugin {
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
-        if ("gotoSettings".equals(action) || "initialize".equals(action)) {
+        if ("gotoSettings".equals(action) || "initialize".equals(action) || "stmStatus".equals(action)) {
             return handler(action, args, callbackContext);
         } else {
             context = callbackContext;
@@ -154,8 +157,46 @@ public class Controller extends CordovaPlugin {
         } else if (action.equals("offLineLock")) {
             this.offLineLock(callbackContext);
             return true;
+        } else if (action.equals("stmStatus")) {
+            this.stmStatus(callbackContext);
+            return true;
         }
         return false;
+    }
+
+    private void stmStatus(CallbackContext callbackContext) {
+        mCallbackContext = callbackContext;
+        // 设置URI
+        Uri uri_user = Uri.parse("content://com.mumatech.policyprovider/stm_status");
+        // 获取ContentResolver
+        ContentResolver resolver = cordovaActivity.getContentResolver();
+        // 通过ContentResolver 向ContentProvider中查询数据
+        Cursor cursor = resolver.query(uri_user, new String[]{"left_lock_status", "right_lock_status", "stake_status"}, null, null, null);
+        if (cursor != null && cursor.moveToNext()) {
+            JSONObject jsonObject = new JSONObject();
+            try {
+                jsonObject.put(ConfigHelper.COMMAND_RES_CODE, ConfigHelper.COMMAND_RES_SUCCESS);
+                JSONObject data = new JSONObject();
+                data.put("leftLockStatus", cursor.getString(cursor.getColumnIndex("left_lock_status")));
+                data.put("rightLockStatus", cursor.getString(cursor.getColumnIndex("right_lock_status")));
+                data.put("stakeStatus", cursor.getInt(cursor.getColumnIndex("stake_status")));
+                jsonObject.put(ConfigHelper.COMMAND_RES_DATA, data);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            mCallbackContext.success(jsonObject);
+        } else {
+            JSONObject jsonObject = new JSONObject();
+            try {
+                jsonObject.put(ConfigHelper.COMMAND_RES_CODE, ConfigHelper.COMMAND_RES_FAIL);
+                jsonObject.put(ConfigHelper.COMMAND_RES_MSG, ControllerError.CODE_OTG_DISCONNECT);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            mCallbackContext.error(jsonObject);
+        }
+        // 关闭游标
+        cursor.close();
     }
 
     private void lock(CallbackContext callbackContext) {
@@ -193,12 +234,10 @@ public class Controller extends CordovaPlugin {
     }
 
     private void gotoSettings(CallbackContext callbackContext) {
-        // Intent intent = new Intent();
-        // intent.setComponent(new ComponentName("com.android.launcher3", "com.android.launcher3.Launcher"));
-        // cordovaActivity.startActivity(intent);
-
-        Intent intent = new Intent("com.mumatech.ama.ACTION_MANAGE");
+        Intent intent = new Intent("com.mumatech.manager.ACTION");
         intent.setComponent(new ComponentName("com.mumatech.ama", "com.mumatech.ama.MainActivity"));
+
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         cordovaActivity.startActivity(intent);
     }
 

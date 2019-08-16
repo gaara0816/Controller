@@ -13,4 +13,7 @@ public class ControllerError {
 
     public static final String CODE_DISCONNECT = "1002";
     public static final String MSG_DISCONNECT = "连接失败";
+
+    public static final String CODE_OTG_DISCONNECT = "1003";
+    public static final String MSG_OTG_DISCONNECT = "OTG连接失败";
 }

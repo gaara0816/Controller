@@ -28,6 +28,10 @@ exports.offLineLock = function (success, error) {
     exec(success, error, 'Controller', 'offLineLock', []);
 };
 
+exports.stmStatus = function (success, error) {
+    exec(success, error, 'Controller', 'stmStatus', []);
+};
+
 exports.callJSInit = function () {
     cordova.require('cordova/channel').onCordovaReady.subscribe(function () {
         exec(succeedCallback, null, "Controller", "callJSInit", []);
