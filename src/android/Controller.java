@@ -235,8 +235,6 @@ public class Controller extends CordovaPlugin {
 
     private void gotoSettings(CallbackContext callbackContext) {
         Intent intent = new Intent("com.mumatech.manager.ACTION");
-        intent.setComponent(new ComponentName("com.mumatech.ama", "com.mumatech.ama.MainActivity"));
-
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         cordovaActivity.startActivity(intent);
     }
