@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android" id="cordova-plugin-controller" version="1.5.2">  
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android" id="cordova-plugin-controller" version="1.6.0">  
   <name>Controller</name>  
   <js-module name="Controller" src="www/Controller.js"> 
     <clobbers target="cordova.plugins.Controller"/> 

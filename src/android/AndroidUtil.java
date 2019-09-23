@@ -156,7 +156,12 @@ public class AndroidUtil {
 
     public static String getDeviceID(Context context) {
         if (Build.MODEL.equals(POSEIDON)) {
-            return Build.getSerial();
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+                deviceId = Build.SERIAL;
+            } else {
+                deviceId = Build.getSerial();
+            }
+            return deviceId;
         } else {
             return getWlanMAC(context);
         }
@@ -172,33 +177,13 @@ public class AndroidUtil {
             String mac = "02:00:00:00:00:00";
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
                 mac = getMacDefault(context);
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-                mac = getMacAddress();
-            } else if (Build.VERSION.SDK_INT > Build.VERSION_CODES.N) {
-//            mac = getMacFromHardware();
+            } else {
                 mac = getMMacAddress();
             }
             deviceId = format(mac);
         }
         return deviceId;
     }
-
-    // public static String getBtAddressViaReflection() {
-    //     if (blcMac == null) {
-    //         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-    //         Object bluetoothManagerService = new Mirror().on(bluetoothAdapter).get().field("mService");
-    //         if (bluetoothManagerService == null) {
-    //             Log.w(TAG, "couldn't find bluetoothManagerService");
-    //             return blcMac;
-    //         }
-    //         Object address = new Mirror().on(bluetoothManagerService).invoke().method("getAddress").withoutArgs();
-    //         if (address != null && address instanceof String) {
-    //             Log.w(TAG, "using reflection to get the BT MAC address: " + address);
-    //             blcMac = (String) address;
-    //         }
-    //     }
-    //     return blcMac;
-    // }
 
     /**
      * 获取手机IMEI
