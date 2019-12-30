@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android" id="cordova-plugin-controller" version="1.7.3">
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android" id="cordova-plugin-controller" version="1.7.4">
   <name>Controller</name>  
   <js-module name="Controller" src="www/Controller.js"> 
     <clobbers target="cordova.plugins.Controller"/> 
@@ -13,12 +13,12 @@
     </config-file>  
 
     <config-file target="AndroidManifest.xml" parent="/manifest/application">
-<!--      <receiver android:name="com.mumatech.controller.PolicyServiceBroadcastReceiver" >-->
-<!--        <intent-filter>-->
-<!--          <action android:name="com.mumatech.policyservice.action.UNLOCK_RESULT" />-->
-<!--          <action android:name="com.mumatech.policyservice.action.LOCK_RESULT" />-->
-<!--        </intent-filter>-->
-<!--      </receiver>-->
+      <receiver android:name="com.mumatech.controller.PolicyServiceBroadcastReceiver" >
+        <intent-filter>
+          <action android:name="com.mumatech.policyservice.action.UNLOCK_RESULT" />
+          <action android:name="com.mumatech.policyservice.action.LOCK_RESULT" />
+        </intent-filter>
+      </receiver>
       <service
           android:name="com.mumatech.controller.PolicyService"
           android:enabled="true"
