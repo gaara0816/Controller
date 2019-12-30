@@ -13,11 +13,7 @@ import android.widget.Toast;
 public class PolicyService extends Service {
     private Messenger mServerMessenger = new Messenger(mServerHandler);
     public static final String ACTION_MAIN = "com.mumatech.controller.ACTION_MAIN";
-    public MyService() {
-
-    }
-
-
+    
     @Override
     public void onCreate() {
         super.onCreate();
