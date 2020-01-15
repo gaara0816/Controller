@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android" id="cordova-plugin-controller" version="1.7.4">
-  <name>Controller</name>  
-  <js-module name="Controller" src="www/Controller.js"> 
-    <clobbers target="cordova.plugins.Controller"/> 
-  </js-module>  
-  <platform name="android"> 
-    <config-file parent="/*" target="res/xml/config.xml"> 
-      <feature name="Controller"> 
-        <param name="android-package" value="com.mumatech.controller.Controller"/> 
-      </feature> 
-    </config-file>  
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android" id="cordova-plugin-controller" version="1.7.5">
+  <name>Controller</name>
+  <js-module name="Controller" src="www/Controller.js">
+    <clobbers target="cordova.plugins.Controller"/>
+  </js-module>
+  <platform name="android">
+    <config-file parent="/*" target="res/xml/config.xml">
+      <feature name="Controller">
+        <param name="android-package" value="com.mumatech.controller.Controller"/>
+      </feature>
+    </config-file>
 
     <config-file target="AndroidManifest.xml" parent="/manifest/application">
       <receiver android:name="com.mumatech.controller.PolicyServiceBroadcastReceiver" >
@@ -32,13 +32,24 @@
 
     <config-file parent="/manifest" target="AndroidManifest.xml">
       <uses-permission android:name="policy.stm_status.Read" />
+      <uses-permission android:name="android.permission.INTERNET" />
+      <uses-permission android:name="android.permission.WAKE_LOCK" />
+      <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+      <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+      <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+      <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+      <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+      <meta-data android:name="JPUSH_APPKEY" android:value="af017807d11884e52a8bcb00"/>
+      <meta-data android:name="JPUSH_CHANNEL" android:value="mumatech"/>
     </config-file>
 
+    <lib-file src="src/android/libs/janalytics-android-2.1.0.jar" />
+
     <source-file src="src/android/Controller.java" target-dir="src/com/mumatech/controller"/>
-    <source-file src="src/android/ControllerError.java" target-dir="src/com/mumatech/controller"/> 
-    <source-file src="src/android/ConfigHelper.java" target-dir="src/com/mumatech/controller"/> 
+    <source-file src="src/android/ControllerError.java" target-dir="src/com/mumatech/controller"/>
+    <source-file src="src/android/ConfigHelper.java" target-dir="src/com/mumatech/controller"/>
     <source-file src="src/android/PolicyServiceBroadcastReceiver.java" target-dir="src/com/mumatech/controller"/>
-    <source-file src="src/android/AndroidUtil.java" target-dir="src/com/mumatech/controller"/> 
+    <source-file src="src/android/AndroidUtil.java" target-dir="src/com/mumatech/controller"/>
     <source-file src="src/android/PolicyService.java" target-dir="src/com/mumatech/controller"/>
   </platform>
 </plugin>
